@@ -1,4 +1,4 @@
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler,
     MessageHandler, ContextTypes, filters
@@ -15,7 +15,7 @@ tasks = []
 
 # Клавиатура с кнопками
 keyboard_start = ReplyKeyboardMarkup(
-    [["Старт", "Создать задачу"]],
+    [["Старт", "Создать задачу"], ["📅 Просмотр задач"]],
     resize_keyboard=True
 )
 
@@ -28,34 +28,39 @@ keyboard_create_task = ReplyKeyboardMarkup(
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Выберите, что вам нужно:",
-        reply_markup=keyboard_start  # Отображаем клавиатуру с кнопками "Старт" и "Создать задачу"
+        reply_markup=keyboard_start
     )
 
-# Обработка сообщений
+# Обработка текстовых сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     if text == "Старт":
-        # Показать сообщение без изменения клавиатуры
         await update.message.reply_text(
             "Привет! Я Smart_P1anner_bot. Я помогу тебе вести список задач.",
-            reply_markup=keyboard_start  # Показываем начальную клавиатуру с кнопками "Старт" и "Создать задачу"
+            reply_markup=keyboard_start
         )
 
     elif text == "Создать задачу":
-        # Показать клавиатуру с кнопкой "Отменить задачу" для отмены
         await update.message.reply_text("Введите текст задачи:")
-        context.user_data["creating_task"] = True  # помечаем, что ждём ввод задачи
+        context.user_data["creating_task"] = True
         await update.message.reply_text("Для отмены нажмите 'Отменить задачу'", reply_markup=keyboard_create_task)
 
     elif text == "Отменить задачу":
-        context.user_data["creating_task"] = False  # сбрасываем флаг
-        await update.message.reply_text("Создание задачи отменено.", reply_markup=keyboard_start)  # Возвращаем начальную клавиатуру
+        context.user_data["creating_task"] = False
+        await update.message.reply_text("Создание задачи отменено.", reply_markup=keyboard_start)
+
+    elif text == "📅 Просмотр задач":
+        if tasks:
+            task_list = "\n".join(f"{i + 1}. {task}" for i, task in enumerate(tasks))
+            await update.message.reply_text(f"📋 Список задач:\n{task_list}")
+        else:
+            await update.message.reply_text("Список задач пуст.")
 
     elif context.user_data.get("creating_task"):
-        tasks.append(text)  # сохраняем задачу
-        await update.message.reply_text(f"Задача добавлена: {text}", reply_markup=keyboard_start)  # Возвращаем начальную клавиатуру
-        context.user_data["creating_task"] = False  # сбрасываем флаг
+        tasks.append(text)
+        await update.message.reply_text(f"Задача добавлена: {text}", reply_markup=keyboard_start)
+        context.user_data["creating_task"] = False
 
     else:
         await update.message.reply_text("Я не понимаю эту команду. Используйте кнопки.")
