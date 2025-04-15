@@ -28,7 +28,7 @@ keyboard_create_task = ReplyKeyboardMarkup(
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Выберите, что вам нужно:",
-        reply_markup=keyboard_start
+        reply_markup=keyboard_start  # Отображаем клавиатуру с кнопками "Старт" и "Создать задачу"
     )
 
 # Обработка сообщений
@@ -36,23 +36,25 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
     if text == "Старт":
+        # Показать сообщение без изменения клавиатуры
         await update.message.reply_text(
             "Привет! Я Smart_P1anner_bot. Я помогу тебе вести список задач.",
-            reply_markup=keyboard_create_task  # Показываем клавиатуру для создания задач
+            reply_markup=keyboard_start  # Показываем начальную клавиатуру с кнопками "Старт" и "Создать задачу"
         )
 
-    elif text == "Создать задачу📋":
+    elif text == "Создать задачу":
+        # Показать клавиатуру с кнопкой "Отменить задачу" для отмены
         await update.message.reply_text("Введите текст задачи:")
         context.user_data["creating_task"] = True  # помечаем, что ждём ввод задачи
         await update.message.reply_text("Для отмены нажмите 'Отменить задачу'", reply_markup=keyboard_create_task)
 
     elif text == "Отменить задачу":
         context.user_data["creating_task"] = False  # сбрасываем флаг
-        await update.message.reply_text("Создание задачи отменено.", reply_markup=keyboard_start)
+        await update.message.reply_text("Создание задачи отменено.", reply_markup=keyboard_start)  # Возвращаем начальную клавиатуру
 
     elif context.user_data.get("creating_task"):
         tasks.append(text)  # сохраняем задачу
-        await update.message.reply_text(f"Задача добавлена: {text}", reply_markup=keyboard_start)
+        await update.message.reply_text(f"Задача добавлена: {text}", reply_markup=keyboard_start)  # Возвращаем начальную клавиатуру
         context.user_data["creating_task"] = False  # сбрасываем флаг
 
     else:
