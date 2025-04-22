@@ -12,7 +12,7 @@ tasks = []
 
 # Клавиатуры
 keyboard_start = ReplyKeyboardMarkup(
-    [["Старт", "Создать задачу"], ["📅 Просмотр задач"]],
+    [["Старт", "Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"]],
     resize_keyboard=True
 )
 
@@ -21,47 +21,57 @@ keyboard_create_task = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# Команда /start — приветствие и кнопки
+# Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Выберите, что вам нужно:",
         reply_markup=keyboard_start
     )
 
-# Обработка текстовых сообщений
+# Обработка сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
-    # Приветствие
     if text == "Старт":
         await update.message.reply_text(
             "Привет! Я Smart_P1anner_bot. Я помогу тебе вести список задач.",
             reply_markup=keyboard_start
         )
 
-    # Начало создания задачи
     elif text == "Создать задачу":
         context.user_data.clear()
         context.user_data["creating_task"] = True
         context.user_data["step"] = "name"
         await update.message.reply_text("Введите название задачи:", reply_markup=keyboard_create_task)
 
-    # Отмена создания задачи
     elif text == "Отменить задачу":
         context.user_data.clear()
         await update.message.reply_text("Создание задачи отменено.", reply_markup=keyboard_start)
 
-    # Просмотр списка задач
     elif text == "📅 Просмотр задач":
         if tasks:
             task_list = "\n".join(
-                f"{i + 1}. {task['name']} — {task['description']}" for i, task in enumerate(tasks)
+                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']} — {task['description']}"
+                for i, task in enumerate(tasks)
             )
             await update.message.reply_text(f"📋 Список задач:\n{task_list}")
         else:
             await update.message.reply_text("Список задач пуст.")
 
-    # Пошаговое добавление задачи
+    elif text == "✅ Выполнить задачу":
+        if tasks:
+            context.user_data.clear()
+            context.user_data["marking_done"] = True
+            task_list = "\n".join(
+                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']}" for i, task in enumerate(tasks)
+            )
+            await update.message.reply_text(
+                f"Введите номер задачи, которую хотите отметить как выполненную:\n{task_list}",
+                reply_markup=keyboard_create_task
+            )
+        else:
+            await update.message.reply_text("Список задач пуст.")
+
     elif context.user_data.get("creating_task"):
         step = context.user_data.get("step")
 
@@ -84,7 +94,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=keyboard_start
             )
 
-    # Неизвестная команда
+    elif context.user_data.get("marking_done"):
+        try:
+            index = int(text) - 1
+            if 0 <= index < len(tasks):
+                tasks[index]["done"] = True
+                task = tasks[index]
+                await update.message.reply_text(
+                    f"Задача '{task['name']}' отмечена как выполненная ✅",
+                    reply_markup=keyboard_start
+                )
+            else:
+                await update.message.reply_text("Неверный номер задачи.", reply_markup=keyboard_start)
+        except ValueError:
+            await update.message.reply_text("Введите корректный номер задачи.", reply_markup=keyboard_start)
+
+        context.user_data.clear()
+
     else:
         await update.message.reply_text("Я не понимаю эту команду. Используйте кнопки.")
 
