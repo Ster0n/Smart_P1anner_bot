@@ -12,7 +12,7 @@ tasks = []
 
 # Клавиатуры
 keyboard_start = ReplyKeyboardMarkup(
-    [["Старт", "Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"], ["🗑 Удалить задачу"]],
+    [["Старт", "Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"], ["🗑 Удалить задачу", "✏️ Редактировать задачу"]],
     resize_keyboard=True
 )
 
@@ -46,7 +46,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif text == "Отменить задачу":
         context.user_data.clear()
-        await update.message.reply_text("Создание задачи отменено.", reply_markup=keyboard_start)
+        await update.message.reply_text("Действие отменено.", reply_markup=keyboard_start)
 
     elif text == "📅 Просмотр задач":
         if tasks:
@@ -81,6 +81,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await update.message.reply_text(
                 f"Введите номер задачи для удаления:\n{task_list}",
+                reply_markup=keyboard_create_task
+            )
+        else:
+            await update.message.reply_text("Список задач пуст.")
+
+    elif text == "✏️ Редактировать задачу":
+        if tasks:
+            context.user_data.clear()
+            context.user_data["editing_task"] = True
+            task_list = "\n".join(
+                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']} — {task['description']}" for i, task in enumerate(tasks)
+            )
+            await update.message.reply_text(
+                f"Введите номер задачи для редактирования:\n{task_list}",
                 reply_markup=keyboard_create_task
             )
         else:
@@ -139,6 +153,36 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except ValueError:
             await update.message.reply_text("Введите корректный номер задачи.", reply_markup=keyboard_start)
 
+        context.user_data.clear()
+
+    elif context.user_data.get("editing_task"):
+        try:
+            index = int(text) - 1
+            if 0 <= index < len(tasks):
+                context.user_data["edit_index"] = index
+                context.user_data["step"] = "new_name"
+                context.user_data["editing_task"] = False
+                await update.message.reply_text("Введите новое название задачи:")
+            else:
+                await update.message.reply_text("Неверный номер задачи.", reply_markup=keyboard_start)
+                context.user_data.clear()
+        except ValueError:
+            await update.message.reply_text("Введите корректный номер задачи.", reply_markup=keyboard_start)
+            context.user_data.clear()
+
+    elif context.user_data.get("step") == "new_name":
+        context.user_data["new_name"] = text
+        context.user_data["step"] = "new_description"
+        await update.message.reply_text("Введите новое описание задачи:")
+
+    elif context.user_data.get("step") == "new_description":
+        index = context.user_data.get("edit_index")
+        tasks[index]["name"] = context.user_data["new_name"]
+        tasks[index]["description"] = text
+        await update.message.reply_text(
+            f"✏️ Задача обновлена:\n*{tasks[index]['name']}* — {tasks[index]['description']}",
+            reply_markup=keyboard_start
+        )
         context.user_data.clear()
 
     else:
