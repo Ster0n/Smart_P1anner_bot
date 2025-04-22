@@ -12,7 +12,7 @@ tasks = []
 
 # Клавиатуры
 keyboard_start = ReplyKeyboardMarkup(
-    [["Старт", "Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"]],
+    [["Старт", "Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"], ["🗑 Удалить задачу"]],
     resize_keyboard=True
 )
 
@@ -72,6 +72,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text("Список задач пуст.")
 
+    elif text == "🗑 Удалить задачу":
+        if tasks:
+            context.user_data.clear()
+            context.user_data["deleting_task"] = True
+            task_list = "\n".join(
+                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']}" for i, task in enumerate(tasks)
+            )
+            await update.message.reply_text(
+                f"Введите номер задачи для удаления:\n{task_list}",
+                reply_markup=keyboard_create_task
+            )
+        else:
+            await update.message.reply_text("Список задач пуст.")
+
     elif context.user_data.get("creating_task"):
         step = context.user_data.get("step")
 
@@ -102,6 +116,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 task = tasks[index]
                 await update.message.reply_text(
                     f"Задача '{task['name']}' отмечена как выполненная ✅",
+                    reply_markup=keyboard_start
+                )
+            else:
+                await update.message.reply_text("Неверный номер задачи.", reply_markup=keyboard_start)
+        except ValueError:
+            await update.message.reply_text("Введите корректный номер задачи.", reply_markup=keyboard_start)
+
+        context.user_data.clear()
+
+    elif context.user_data.get("deleting_task"):
+        try:
+            index = int(text) - 1
+            if 0 <= index < len(tasks):
+                removed_task = tasks.pop(index)
+                await update.message.reply_text(
+                    f"🗑 Задача '{removed_task['name']}' удалена.",
                     reply_markup=keyboard_start
                 )
             else:
