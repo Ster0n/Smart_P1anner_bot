@@ -51,7 +51,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "📅 Просмотр задач":
         if tasks:
             task_list = "\n".join(
-                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']} — {task['description']}"
+                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']} — {task['description']} (Дедлайн: {task['deadline']})"
                 for i, task in enumerate(tasks)
             )
             await update.message.reply_text(f"📋 Список задач:\n{task_list}")
@@ -91,7 +91,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data.clear()
             context.user_data["editing_task"] = True
             task_list = "\n".join(
-                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']} — {task['description']}" for i, task in enumerate(tasks)
+                f"{i + 1}. {'✅' if task['done'] else '🔲'} {task['name']} — {task['description']} (Дедлайн: {task['deadline']})"
+                for i, task in enumerate(tasks)
             )
             await update.message.reply_text(
                 f"Введите номер задачи для редактирования:\n{task_list}",
@@ -109,16 +110,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("Введите описание задачи:")
 
         elif step == "description":
-            task_name = context.user_data.get("task_name")
-            task_description = text
-            tasks.append({
-                "name": task_name,
-                "description": task_description,
+            context.user_data["task_description"] = text
+            context.user_data["step"] = "deadline"
+            await update.message.reply_text("Введите дедлайн задачи (например, 25.04.2025):")
+
+        elif step == "deadline":
+            task = {
+                "name": context.user_data["task_name"],
+                "description": context.user_data["task_description"],
+                "deadline": text,
                 "done": False
-            })
+            }
+            tasks.append(task)
             context.user_data.clear()
             await update.message.reply_text(
-                f"✅ Задача добавлена:\n*{task_name}* — {task_description}",
+                f"✅ Задача добавлена:\n*{task['name']}* — {task['description']} (Дедлайн: {task['deadline']})",
                 reply_markup=keyboard_start
             )
 
@@ -176,11 +182,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Введите новое описание задачи:")
 
     elif context.user_data.get("step") == "new_description":
-        index = context.user_data.get("edit_index")
+        context.user_data["new_description"] = text
+        context.user_data["step"] = "new_deadline"
+        await update.message.reply_text("Введите новый дедлайн задачи (например, 25.04.2025):")
+
+    elif context.user_data.get("step") == "new_deadline":
+        index = context.user_data["edit_index"]
         tasks[index]["name"] = context.user_data["new_name"]
-        tasks[index]["description"] = text
+        tasks[index]["description"] = context.user_data["new_description"]
+        tasks[index]["deadline"] = text
         await update.message.reply_text(
-            f"✏️ Задача обновлена:\n*{tasks[index]['name']}* — {tasks[index]['description']}",
+            f"✏️ Задача обновлена:\n*{tasks[index]['name']}* — {tasks[index]['description']} (Дедлайн: {tasks[index]['deadline']})",
             reply_markup=keyboard_start
         )
         context.user_data.clear()
