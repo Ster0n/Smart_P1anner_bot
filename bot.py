@@ -1,18 +1,21 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
+import logging
 
-# Загрузка API ключа
+# 🔧 Настройка логирования
+logging.basicConfig(level=logging.INFO)
+
+# 📥 Загрузка API ключа
 load_dotenv()
 api_key = os.getenv("TELEGRAM_API_KEY")
 
-# Хранилище задач
+# 📝 Хранилище задач
 tasks = []
 
-# Клавиатуры
+# 📋 Клавиатуры
 keyboard_start = ReplyKeyboardMarkup(
     [["Старт", "Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"], ["🗑 Удалить задачу", "✏️ Редактировать задачу"]],
     resize_keyboard=True
@@ -23,11 +26,11 @@ keyboard_create_task = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# Команда /start
+# 🚀 Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Выберите, что вам нужно:", reply_markup=keyboard_start)
 
-# Обработка сообщений
+# 📩 Обработка сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
@@ -113,7 +116,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             }
             tasks.append(task)
             context.user_data.clear()
-            await update.message.reply_text(f"✅ Задача добавлена:\n*{task['name']}* — {task['description']} (Дедлайн: {task['deadline']})", reply_markup=keyboard_start)
+            await update.message.reply_text(
+                f"✅ Задача добавлена:\n*{task['name']}* — {task['description']} (Дедлайн: {task['deadline']})",
+                reply_markup=keyboard_start,
+                parse_mode="Markdown"
+            )
 
     elif context.user_data.get("marking_done"):
         try:
@@ -169,32 +176,38 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         tasks[index]["name"] = context.user_data["new_name"]
         tasks[index]["description"] = context.user_data["new_description"]
         tasks[index]["deadline"] = text
-        await update.message.reply_text(f"✏️ Задача обновлена:\n*{tasks[index]['name']}* — {tasks[index]['description']} (Дедлайн: {tasks[index]['deadline']})", reply_markup=keyboard_start)
+        await update.message.reply_text(
+            f"✏️ Задача обновлена:\n*{tasks[index]['name']}* — {tasks[index]['description']} (Дедлайн: {tasks[index]['deadline']})",
+            reply_markup=keyboard_start,
+            parse_mode="Markdown"
+        )
         context.user_data.clear()
 
     else:
         await update.message.reply_text("Я не понимаю эту команду. Используйте кнопки.")
 
-# Уведомление о приближении дедлайна
-async def check_deadlines(application):
+# ⏰ Уведомление о дедлайнах
+async def check_deadlines(context: ContextTypes.DEFAULT_TYPE):
     now = datetime.now()
     for task in tasks:
         if not task["done"]:
             try:
                 deadline = datetime.strptime(task["deadline"], "%d.%m.%Y")
-                if 0 <= (deadline - now).days <= 1:
-                    await application.bot.send_message(chat_id=task["chat_id"], text=f"⏰ Напоминание: задача '{task['name']}' приближается к дедлайну ({task['deadline']})!")
+                if (deadline.date() - now.date()).days == 0:
+                    await context.bot.send_message(
+                        chat_id=task["chat_id"],
+                        text=f"⏰ Напоминание: задача '{task['name']}' должна быть выполнена сегодня! (Дедлайн: {task['deadline']})"
+                    )
             except ValueError:
                 continue
 
-# Инициализация и запуск
-app = ApplicationBuilder().token(api_key).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+# 🚀 Запуск бота
+if __name__ == "__main__":
+    app = ApplicationBuilder().token(api_key).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-# Планировщик для уведомлений
-scheduler = BackgroundScheduler()
-scheduler.add_job(lambda: check_deadlines(app), 'interval', hours=12)
-scheduler.start()
+    # Добавляем повторяющуюся задачу для проверки дедлайнов
+    app.job_queue.run_repeating(check_deadlines, interval=30, first=0)
 
-app.run_polling(timeout=30)
+    app.run_polling()
