@@ -68,5 +68,5 @@ python bot.py
 ## 👨‍💻 Автор
 
 **Береговой Степан Сергеевич**  
-Telegram: [@Steron404](https://t.me/Steron404)  
+Telegram: [@Ster0n](https://t.me/Ster0n)  
 Email: beregovoy2002123@gmail.com
