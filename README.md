@@ -68,5 +68,55 @@ python bot.py
 ## 👨‍💻 Автор
 
 **Береговой Степан Сергеевич**  
-Telegram: [@Ster0n](https://t.me/Ster0n)  
+Telegram: [@Steron404](https://t.me/Steron404)  
 Email: beregovoy2002123@gmail.com
+
+
+---
+
+## English Description
+
+### Smart_P1anner_bot
+
+Smart_P1anner_bot is a simple Telegram-based task planner developed using `python-telegram-bot`. It allows users to manage their task list with an intuitive chat interface.
+
+### Features
+
+- 👋 Start the bot and receive a greeting
+- ✅ Create new tasks with name, description, and deadline
+- 📅 View the full list of tasks with status indicators
+- 🟩 Mark tasks as completed
+- 🗑 Delete tasks from the list
+- ✏️ Edit task details (name, description, deadline)
+- ❌ Cancel task creation at any time
+
+### Requirements
+
+- Python 3.10+
+- python-telegram-bot
+- python-dotenv
+
+### Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/Smart_P1anner_bot.git
+   cd Smart_P1anner_bot/v0.1
+   ```
+
+2. Create a `.env` file in the project root and add your bot token:
+   ```env
+   TELEGRAM_API_KEY=your_telegram_bot_token
+   ```
+
+3. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Run the bot:
+   ```bash
+   python bot.py
+   ```
+
+Enjoy planning your tasks with Smart_P1anner_bot! 🎯
