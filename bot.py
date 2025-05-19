@@ -17,7 +17,7 @@ tasks = []
 
 # 📋 Клавиатуры
 keyboard_start = ReplyKeyboardMarkup(
-    [["Старт", "Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"], ["🗑 Удалить задачу", "✏️ Редактировать задачу"]],
+    [["🚀 Старт", "🆕 Создать задачу"], ["📅 Просмотр задач", "✅ Выполнить задачу"], ["🗑 Удалить задачу", "✏️ Редактировать задачу"]],
     resize_keyboard=True
 )
 
@@ -34,10 +34,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
-    if text == "Старт":
+    if text == "🚀 Старт":
         await update.message.reply_text("Привет! Я Smart_P1anner_bot. Я помогу тебе вести список задач.", reply_markup=keyboard_start)
 
-    elif text == "Создать задачу":
+    elif text == "🆕 Создать задачу":
         context.user_data.clear()
         context.user_data["creating_task"] = True
         context.user_data["step"] = "name"
@@ -208,6 +208,6 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Добавляем повторяющуюся задачу для проверки дедлайнов
-    app.job_queue.run_repeating(check_deadlines, interval=30, first=0)
+    app.job_queue.run_repeating(check_deadlines, interval=180, first=0)
 
     app.run_polling()
