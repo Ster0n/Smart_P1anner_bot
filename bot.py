@@ -108,23 +108,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         elif step == "deadline":
             try:
-                datetime.strptime(text, "%d.%m.%Y")
-                task = {
-                    "name": context.user_data["task_name"],
-                    "description": context.user_data["task_description"],
-                    "deadline": text,
-                    "done": False,
-                    "chat_id": update.effective_chat.id
-                }
-                tasks.append(task)
-                context.user_data.clear()
-                await update.message.reply_text(
-                    f"✅ Задача добавлена:\n*{task['name']}* — {task['description']} (Дедлайн: {task['deadline']})",
-                    reply_markup=keyboard_start,
-                    parse_mode="Markdown"
-                )
+                deadline_date = datetime.strptime(text, "%d.%m.%Y").date()
+                if deadline_date < datetime.now().date():
+                    await update.message.reply_text("❗ Дата дедлайна не может быть в прошлом. Введите корректную дату (ДД.ММ.ГГГГ):")
+                else:
+                    task = {
+                        "name": context.user_data["task_name"],
+                        "description": context.user_data["task_description"],
+                        "deadline": text,
+                        "done": False,
+                        "chat_id": update.effective_chat.id
+                    }
+                    tasks.append(task)
+                    context.user_data.clear()
+                    await update.message.reply_text(
+                        f"✅ Задача добавлена:\n*{task['name']}* — {task['description']} (Дедлайн: {task['deadline']})",
+                        reply_markup=keyboard_start,
+                        parse_mode="Markdown"
+                    )
             except ValueError:
-                await update.message.reply_text("❌ Неверный формат даты. Введите дедлайн в формате ДД.ММ.ГГГГ:")
+                await update.message.reply_text("❗ Неверный формат даты. Введите дату в формате ДД.ММ.ГГГГ:")
 
     elif context.user_data.get("marking_done"):
         try:
@@ -173,23 +176,26 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif context.user_data.get("step") == "new_description":
         context.user_data["new_description"] = text
         context.user_data["step"] = "new_deadline"
-        await update.message.reply_text("Введите новый дедлайн задачи:")
+        await update.message.reply_text("Введите новый дедлайн задачи (например, 25.05.2025):")
 
     elif context.user_data.get("step") == "new_deadline":
         try:
-            datetime.strptime(text, "%d.%m.%Y")
-            index = context.user_data["edit_index"]
-            tasks[index]["name"] = context.user_data["new_name"]
-            tasks[index]["description"] = context.user_data["new_description"]
-            tasks[index]["deadline"] = text
-            await update.message.reply_text(
-                f"✏️ Задача обновлена:\n*{tasks[index]['name']}* — {tasks[index]['description']} (Дедлайн: {tasks[index]['deadline']})",
-                reply_markup=keyboard_start,
-                parse_mode="Markdown"
-            )
-            context.user_data.clear()
+            deadline_date = datetime.strptime(text, "%d.%m.%Y").date()
+            if deadline_date < datetime.now().date():
+                await update.message.reply_text("❗ Дата дедлайна не может быть в прошлом. Введите корректную дату (ДД.ММ.ГГГГ):")
+            else:
+                index = context.user_data["edit_index"]
+                tasks[index]["name"] = context.user_data["new_name"]
+                tasks[index]["description"] = context.user_data["new_description"]
+                tasks[index]["deadline"] = text
+                await update.message.reply_text(
+                    f"✏️ Задача обновлена:\n*{tasks[index]['name']}* — {tasks[index]['description']} (Дедлайн: {tasks[index]['deadline']})",
+                    reply_markup=keyboard_start,
+                    parse_mode="Markdown"
+                )
+                context.user_data.clear()
         except ValueError:
-            await update.message.reply_text("❌ Неверный формат даты. Введите дедлайн в формате ДД.ММ.ГГГГ:")
+            await update.message.reply_text("❗ Неверный формат даты. Введите дату в формате ДД.ММ.ГГГГ:")
 
     else:
         await update.message.reply_text("Я не понимаю эту команду. Используйте кнопки.")
